@@ -1,0 +1,14 @@
+{
+  "name": "Hear Me",
+  "description": "Chrome App to install new .wav files to Hear Me hardware",
+  "version": "0.1",
+  "manifest_version": 2,
+  "default_locale": "en",
+  "permissions": ["serial"],
+  "app": {
+    "background": {
+      "scripts": ["background.js", "HearMeAudioGatewayChrome.js"]
+    }
+  },
+  "icons": { "128": "imgres.png" }
+}
