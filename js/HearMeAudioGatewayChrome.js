@@ -147,10 +147,13 @@ function receivedHandler(str, connectionId){
 		clearTimeout(connectionTimer); 
 		hearMeId = connectionId;  
 		inputCommand("ME", "T", "F", "H", "P"); 
-		// pingHearMe(); 
+		pingHearMe(); 
 	}else if (str == "ME"){
 		$('body').append('<div> Success! Choose files to upload: </div>');
-		chooseFiles(); 
+		setTimeout(function() {
+			chooseFiles();
+		}, 3000);
+		 
 	}else if (str.substring(0, 1) == "T"){
 		versionT = parseInt(str.substring(1)); 
 		console.log("versionT: " + versionT); 
@@ -182,6 +185,7 @@ var byteIndex = 0;
 
 
 function sendBytes(stories, storyLocation, storyLength, dataBufArray){
+	clearTimeout(hearMeTimer);
 	dataTypeIndex = 0
 	byteIndex = 0
 	totalBytes = [processHeader(stories, storyLocation, storyLength), processData(storyLocation, dataBufArray)]
@@ -196,18 +200,22 @@ function dataSendWorkHorse(){
 					console.log("Problem sending data, terminate!"); 
 					return
 				}
+				console.log(byteIndex + " index packet sent.");
 				console.log(info.bytesSent + " bytes sent."); 
 				byteIndex++; 
-				dataSendWorkHorse(); 
+				setTimeout(dataSendWorkHorse, 1);
+				 
 			}); 
 		}else{
 			console.log("Done sending data for one type.");
 			dataTypeIndex++; 
-			dataSendWorkHorse();
+			setTimeout(dataSendWorkHorse, 1);
 		}
 	}else{
 		console.log("All Data is Sent."); 
-		//Put code for dealing with final here. 
+		pingHearMe(); 
+		// inputCommand("DISCONNECT");
+		// clearTimeout(hearMeTimer);
 	}
 }
 
@@ -325,19 +333,19 @@ function extractBytes(arrOfBuffs){
 
 	if (errorFileFound){
 			$('body').append("<div>Please reselect stories.</div>");
-			chooseFiles(); 
+			setTimeout(chooseFiles, 3000);
 			return;  
 	}
 
 	if (filesTooLong){
 		$('body').append("<div>File sizes exceed capacity of HearMe. Please reselect stories.</div>");
-			chooseFiles(); 
+			setTimeout(chooseFiles, 3000);
 			return;  
 	}
 
 	if (tooManyStories){
 		$('body').append("<div>Number of stories exceed capacity of HearMe. Please reselect stories.</div>");
-			chooseFiles(); 
+			setTimeout(chooseFiles, 3000);
 			return;  
 	}
 
@@ -356,23 +364,34 @@ var reader = new FileReader();
 var arrOfBuffs = []; 
 
 function convertToFiles(fileEntries){
-	if (fileIndex < fileEntries.length){
-		fileEntries[fileIndex].file(function success(file) {
-    							reader.readAsArrayBuffer(file);
-					}, function fail(error) {
-    							alert("Unable to retrieve file properties: " + error.code);
-					}); 
-	}else{
-		console.log("Done Processing Files");
-		extractBytes(arrOfBuffs); 
-	}
+	try{
+		if (chrome.runtime.lastError){
+				throw new Error(chrome.runtime.lastError); 
+			};
 
-	reader.onload = function(e) {
-  			arrOfBuffs.push(dcodeIO.ByteBuffer.wrap(reader.result));
-  			console.log("Converted to File, Number: " + fileIndex);  
-  			fileIndex++; 
-  			convertToFiles(fileEntries);
+
+		if (fileIndex < fileEntries.length){
+			fileEntries[fileIndex].file(function success(file) {
+	    							reader.readAsArrayBuffer(file);
+						}, function fail(error) {
+	    							alert("Unable to retrieve file properties: " + error.code);
+						}); 
+		}else{
+			console.log("Done Processing Files");
+			extractBytes(arrOfBuffs); 
 		}
+
+		reader.onload = function(e) {
+	  			arrOfBuffs.push(dcodeIO.ByteBuffer.wrap(reader.result));
+	  			console.log("Converted to File, Number: " + fileIndex);  
+	  			fileIndex++; 
+	  			convertToFiles(fileEntries);
+			}
+	}catch(e){
+		console.log("No Files Chosen.");
+		$('body').append("<div>No Files Chosen. Restart App until we find a better way to handle this. </div>");
+		// setTimeout(chooseFiles, 3000);
+	}
 }
 
 function chooseFiles(){
@@ -384,7 +403,7 @@ function chooseFiles(){
       accepts: [ { description: 'Wave Files (*.wav)',
                    extensions: ['wav']} ],
       acceptsMultiple: true
-    }, convertToFiles(fileEntries));
+    }, convertToFiles);
 }; 
 
 
