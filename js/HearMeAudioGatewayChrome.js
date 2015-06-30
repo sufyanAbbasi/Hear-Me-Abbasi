@@ -115,7 +115,7 @@ function connectWorkhorse() {
 		chrome.serial.connect(allPorts[currentPortIndex].path, {bitrate: 115200}, onConnect);	
 		currentPortIndex++;
 	} else {
-		$('body').append('<div>No devices found, searching again.</div>')
+		$('body').append('<div>No devices found, searching again. Wait 30 seconds for HearMe time out, or check connection.</div>')
 		console.log("No devices found, searching again.");
 		console.log("*********************************")
 		noneFound = true; 
@@ -137,6 +137,11 @@ function pingHearMe(){
 	hearMeTimer = setTimeout(function() {
 		console.log("PING!");
 		chrome.serial.send(hearMeId, str2buf("P"), function(info){
+			if (chrome.runtime.lastError){
+				if (info.error){
+					$('body').append('<div>Connection was disrupted. Please restart the app.</div>')
+				}	
+			}
 			pingHearMe(); 
 		})
 	}, 25000);
@@ -198,6 +203,7 @@ function dataSendWorkHorse(){
 			chrome.serial.send(hearMeId, totalBytes[dataTypeIndex][byteIndex], function(info){
 				if (info.error){
 					console.log("Problem sending data, terminate!"); 
+					$('body').append('<div>Problem sending data, terminate!</div>'); 
 					return
 				}
 				console.log(byteIndex + " index packet sent.");
@@ -409,11 +415,7 @@ function chooseFiles(){
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Initialize Page Processes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-
 findHearMe(); 
-// chooseFiles(); 
-
 
 chrome.runtime.onSuspend.addListener(function(){
 	inputCommand("DISCONNECT"); 
