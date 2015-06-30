@@ -3,7 +3,8 @@
   "description": "Chrome App to install new .wav files to Hear Me hardware",
   "version": "0.1",
   "manifest_version": 2,
-  "permissions": ["serial"],
+  "minimum_chrome_version": "23",
+  "permissions": ["serial", "fileSystem"],
   "app": {
     "background": {
       "scripts": ["background.js"]
