@@ -10,5 +10,5 @@
       "scripts": ["background.js"]
     }
   },
-  "icons": { "128": "imgres.png" }
+  "icons": { "128": "img/icon.png" }
 }

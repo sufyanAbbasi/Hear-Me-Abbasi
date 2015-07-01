@@ -54,7 +54,7 @@ function inputCommand(){
 			chrome.serial.send(hearMeId, str2buf("R"), function(info){
 				chrome.serial.disconnect(hearMeId, onDisconnect);
 			});
-			$('body').append('<div> HearMe Disconnected. </div>');
+			// $('body').append('<div> HearMe Disconnected. </div>');
 			return; 
 		}
 		chrome.serial.send(hearMeId, str2buf(arguments[i]), function(info){});
@@ -115,7 +115,7 @@ function connectWorkhorse() {
 		chrome.serial.connect(allPorts[currentPortIndex].path, {bitrate: 115200}, onConnect);	
 		currentPortIndex++;
 	} else {
-		$('body').append('<div>No devices found, searching again. Wait 30 seconds for HearMe time out, or check connection.</div>')
+		// $('body').append('<div>No devices found, searching again. Wait 30 seconds for HearMe time out, or check connection.</div>')
 		console.log("No devices found, searching again.");
 		console.log("*********************************")
 		noneFound = true; 
@@ -125,7 +125,7 @@ function connectWorkhorse() {
 }
 
 function findHearMe(){
-	$('body').append('<div>Looking for HearMe... </div>'); 
+	$('#main-content').load('ajax/../html_modules/title.html');
 	noneFound = false;
 	chrome.serial.getDevices(function(ports){
 		allPorts = ports;
@@ -139,7 +139,7 @@ function pingHearMe(){
 		chrome.serial.send(hearMeId, str2buf("P"), function(info){
 			if (chrome.runtime.lastError){
 				if (info.error){
-					$('body').append('<div>Connection was disrupted. Please restart the app.</div>')
+					// $('body').append('<div>Connection was disrupted. Please restart the app.</div>')
 				}	
 			}
 			pingHearMe(); 
@@ -154,31 +154,37 @@ function receivedHandler(str, connectionId){
 		inputCommand("ME", "T", "F", "H", "P"); 
 		pingHearMe(); 
 	}else if (str == "ME"){
-		$('body').append('<div> Success! Choose files to upload: </div>');
+		// $('body').append('<div> Success! Choose files to upload: </div>');
+		$('#search').replaceWith('<p>Success!<p>');
 		setTimeout(function() {
-			chooseFiles();
-		}, 3000);
+			$('#title').remove(); 
+			$('#main-content').load('ajax/../html_modules/choose_file.html', function(){
+				$('#file-list button').on('click', function(){
+					chooseFiles(); 
+				})
+			});
+		}, 2000);
 		 
 	}else if (str.substring(0, 1) == "T"){
 		versionT = parseInt(str.substring(1)); 
 		console.log("versionT: " + versionT); 
-		$('body').append('<div>Transfer Protocol Version: ' + versionT + '</div>')
+		// $('body').append('<div>Transfer Protocol Version: ' + versionT + '</div>')
 	}else if (str.substring(0, 1) == "F"){
 		versionF = parseInt(str.substring(1));
 		console.log("versionF: " + versionF);
-		$('body').append('<div>Firmware Version: ' + versionF + '</div>')  
+		// $('body').append('<div>Firmware Version: ' + versionF + '</div>')  
 	}else if (str.substring(0, 1) == "H"){
 		versionH = parseInt(str.substring(1)); 
 		console.log("versionH: " + versionH);
-		$('body').append('<div>Hardware Version: ' + versionH + '</div>')  
+		// $('body').append('<div>Hardware Version: ' + versionH + '</div>')  
 	}else if (str.substring(0, 1) == "P"){
 		var vals = str.substring(1).split(","); 
 		numPlaysTotal = vals[0]; 
 		numPlaysLast = vals[1]; 
 		console.log("numPlaysTotal: " + numPlaysTotal); 
 		console.log("numPlaysLast: " + numPlaysLast); 
-		$('body').append('<div>Total Number of Plays Ever: ' + numPlaysTotal +
-						   '<br> Number of plays since last connect: ' + numPlaysLast + '</div>')  
+		// $('body').append('<div>Total Number of Plays Ever: ' + numPlaysTotal +
+						   // '<br> Number of plays since last connect: ' + numPlaysLast + '</div>')  
 	}
 }
 
@@ -203,7 +209,7 @@ function dataSendWorkHorse(){
 			chrome.serial.send(hearMeId, totalBytes[dataTypeIndex][byteIndex], function(info){
 				if (info.error){
 					console.log("Problem sending data, terminate!"); 
-					$('body').append('<div>Problem sending data, terminate!</div>'); 
+					// $('body').append('<div>Problem sending data, terminate!</div>'); 
 					return
 				}
 				console.log(byteIndex + " index packet sent.");
@@ -278,14 +284,19 @@ function extractBytes(arrOfBuffs){
 	//If any do not check out, remove from story list. 
 	//calculate number of packets for each story, 
 
-	$('body').append("<div>" + arrOfBuffs.length + " Files Selected.</div>");
+	// $('body').append("<div>" + arrOfBuffs.length + " Files Selected.</div>");
+
+	var li = $('#file-list ul').children().filter('li');
+	
+	li.children().css("background-color", "transparent");
+
 	var dataBufArray = [];  
 	var stories = arrOfBuffs; 
 
 	var storyLocation = []; 
 	var storyLength = []; 
 
-	var errorFileFound = false; 
+	var numErrorFiles = 0; 
 	var filesTooLong = false; 
 	var tooManyStories = false; 
 
@@ -301,12 +312,17 @@ function extractBytes(arrOfBuffs){
 		var sampleWidth = arrOfBuffs[i].readInt16(32);
 
 		if (channels != 1 || sampleWidth != 2 || sampleRate != 16000){
-			$('body').append("<div>Story [" + i + "] is incompatible with HearMe.</div>"); 
+			// $('body').append("<div>Story [" + i + "] is incompatible with HearMe.</div>"); 
+			li.eq(i).children().css("background-color", "red");
 			errorFileFound = true; 
+			numErrorFiles++; 
+		}else{
+			li.eq(i).children().css("background-color", "green");
 		}
 		
 		var dataSize = Math.ceil(arrOfBuffs[i].readInt32(40) / 4096) * 4096; 
 
+		//dataSum is the dataSize + 5 bytes for every 256 byte packet 
 		dataSum += dataSize + (dataSize/256)*5; 
 
 		storyLength.push(dataSize);
@@ -329,6 +345,15 @@ function extractBytes(arrOfBuffs){
 		console.log("") 
 	};
 
+	if (numErrorFiles){
+		if (numErrorFiles > 1){
+			$('#message-box p').text(numErrorFiles + ' files are incompatible with HearMe. Please reselect files.');
+		}else{
+			$('#message-box p').text(numErrorFiles + ' file is incompatible with HearMe. Please reselect files.');
+		}
+		return 
+	}
+
 	if (versionH == 4){
 		if (dataSum > 1048512) filesTooLong = true;
 		if (stories.length > 10) tooManyStories = true; 
@@ -337,29 +362,34 @@ function extractBytes(arrOfBuffs){
 		if (stories.length > 20) tooManyStories = true; 
 	}
 
-	if (errorFileFound){
-			$('body').append("<div>Please reselect stories.</div>");
-			setTimeout(chooseFiles, 3000);
-			return;  
-	}
-
 	if (filesTooLong){
-		$('body').append("<div>File sizes exceed capacity of HearMe. Please reselect stories.</div>");
-			setTimeout(chooseFiles, 3000);
-			return;  
+		$('#message-box p').text('Total file size is larger than the capacity of the HearMe. Please reselect less files.'); 
+		return;  
 	}
 
 	if (tooManyStories){
-		$('body').append("<div>Number of stories exceed capacity of HearMe. Please reselect stories.</div>");
-			setTimeout(chooseFiles, 3000);
-			return;  
+		$('#message-box p').text('Total number of stories exceed capacity of HearMe. Please reselect less files.');
+		return;  
 	}
 
+	if (stories.length == 1){
+		$('#message-box p').text(stories.length + ' story is ready to be uploaded. You may reselect files if you want.');
+	}else{
+		$('#message-box p').text(stories.length + ' stories are ready to be uploaded. You may reselect files if you want.');
+	}
+
+	
 	console.log(storyLocation, storyLength);
 
 	console.log("********************************************")
 
-	sendBytes(stories, storyLocation, storyLength, dataBufArray); 
+	$('#upload-button button').on('click', function(){
+			sendBytes(stories, storyLocation, storyLength, dataBufArray)
+		});
+
+	$('#upload-button button').removeAttr('disabled');
+
+	
 
 }
 
@@ -375,8 +405,13 @@ function convertToFiles(fileEntries){
 				throw new Error(chrome.runtime.lastError); 
 			};
 
+		var li = $('#file-list ul').children().filter('li');
+
+
 
 		if (fileIndex < fileEntries.length){
+			li.eq(fileIndex).append(fileEntries[fileIndex].name);
+
 			fileEntries[fileIndex].file(function success(file) {
 	    							reader.readAsArrayBuffer(file);
 						}, function fail(error) {
@@ -395,12 +430,18 @@ function convertToFiles(fileEntries){
 			}
 	}catch(e){
 		console.log("No Files Chosen.");
-		$('body').append("<div>No Files Chosen. Restart App until we find a better way to handle this. </div>");
-		// setTimeout(chooseFiles, 3000);
+		$('#message-box p').text('No Files Chosen. Please press the "choose files" button.');
+		var li = $('#file-list ul').children().filter('li');
+		li.children().css("background-color", "transparent");
 	}
 }
 
 function chooseFiles(){
+	$('#upload-button button').attr('disabled','disabled');
+	var li = $('#file-list ul').children().filter('li');
+	li.contents().filter(function(){
+    	return (this.nodeType == 3);
+	}).remove();
 	fileIndex = 0;
 	arrOfBuffs = []; 
 	chrome.fileSystem.chooseEntry( {
@@ -420,6 +461,7 @@ findHearMe();
 chrome.runtime.onSuspend.addListener(function(){
 	inputCommand("DISCONNECT"); 
 })
+
 
 
 
