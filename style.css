@@ -35,6 +35,7 @@
 
 	#top-bar li {
 		float: left;
+		opacity: .5;
 	}
 
 	#top-bar p {
@@ -55,7 +56,7 @@
 
 		#title{
 			text-align: center;
-			line-height: 80px;
+			line-height: 20px;
 		}
 
 		#title p{
@@ -65,10 +66,10 @@
 
 	#search{
 		position: absolute;
-		width: 100px;
-		height: 100px;
-		bottom: 60px;
-		left: 150px;
+		width: 120px;
+		height: 120px;
+		bottom: 110px;
+		left: 120px;
 	}
 
 	#search img{

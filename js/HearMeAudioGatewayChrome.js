@@ -22,6 +22,7 @@ var allPorts = [];
 var currentPortIndex = 0;
 
 //Timer
+var searchTimer; 
 var connectionTimer; 
 var hearMeTimer; 
 
@@ -118,6 +119,9 @@ function connectWorkhorse() {
 		// $('body').append('<div>No devices found, searching again. Wait 30 seconds for HearMe time out, or check connection.</div>')
 		console.log("No devices found, searching again.");
 		console.log("*********************************")
+		searchTimer = setTimeout(function() {
+			$('#title #looking').text('This may take a while. Please check that HearMe is plugged in and not connected to any other applications.');
+		}, 30000);
 		noneFound = true; 
 		currentPortIndex = 0; 
 		findHearMe(); 
@@ -125,7 +129,7 @@ function connectWorkhorse() {
 }
 
 function findHearMe(){
-	$('#main-content').load('ajax/../html_modules/title.html');
+	$('#title-tab').css('opacity', '1');
 	noneFound = false;
 	chrome.serial.getDevices(function(ports){
 		allPorts = ports;
@@ -155,11 +159,14 @@ function receivedHandler(str, connectionId){
 		pingHearMe(); 
 	}else if (str == "ME"){
 		// $('body').append('<div> Success! Choose files to upload: </div>');
+		clearTimeout(searchTimer);
 		$('#search').replaceWith('<p>Success!<p>');
 		setTimeout(function() {
 			$('#title').remove(); 
+			$('#title-tab').css('opacity', '.5');
 			$('#main-content').load('ajax/../html_modules/choose_file.html', function(){
 				$('#file-list button').on('click', function(){
+					$('#files-tab').css('opacity', '1');
 					chooseFiles(); 
 				})
 			});
@@ -384,8 +391,15 @@ function extractBytes(arrOfBuffs){
 	console.log("********************************************")
 
 	$('#upload-button button').on('click', function(){
-			sendBytes(stories, storyLocation, storyLength, dataBufArray)
-		});
+		setTimeout(function() {
+			$('#files-tab').css('opacity', '.5');
+			$('#file-directory').remove(); 
+			$('#main-content').load('ajax/../html_modules/uoload.html', function(){
+				$('#upload-tab').css('opacity', '1');
+				sendBytes(stories, storyLocation, storyLength, dataBufArray)
+			});
+		}, 500);
+	});
 
 	$('#upload-button button').removeAttr('disabled');
 
@@ -455,8 +469,8 @@ function chooseFiles(){
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Initialize Page Processes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+$('#main-content').load('ajax/../html_modules/title.html', findHearMe); 
 
-findHearMe(); 
 
 chrome.runtime.onSuspend.addListener(function(){
 	inputCommand("DISCONNECT"); 
