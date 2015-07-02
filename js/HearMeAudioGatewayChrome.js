@@ -130,7 +130,7 @@ function inputCommand(){
 			chrome.serial.send(hearMeId, str2buf("R"), function(info){
 				chrome.serial.disconnect(hearMeId, onDisconnect);
 			});
-			// $('body').append('<div> HearMe Disconnected. </div>');
+
 			return; 
 		}
 		chrome.serial.send(hearMeId, str2buf(arguments[i]), function(info){});
@@ -185,7 +185,6 @@ function connectWorkhorse() {
 		chrome.serial.connect(allPorts[currentPortIndex].path, {bitrate: 115200}, onConnect);	
 		currentPortIndex++;
 	} else {
-		// $('body').append('<div>No devices found, searching again. Wait 30 seconds for HearMe time out, or check connection.</div>')
 		console.log("No devices found, searching again.");
 		console.log("*********************************")
 		searchTimer = setTimeout(function() {
@@ -231,7 +230,6 @@ function receivedHandler(str, connectionId){
 		inputCommand("ME", "T", "F", "H", "P"); 
 		pingHearMe(); 
 	}else if (str == "ME"){
-		// $('body').append('<div> Success! Choose files to upload: </div>');
 		clearTimeout(searchTimer);
 		$('#search').replaceWith('<p style="padding-top: 50px;">Success!<p>');
 		setTimeout(function() {
@@ -241,22 +239,18 @@ function receivedHandler(str, connectionId){
 	}else if (str.substring(0, 1) == "T"){
 		versionT = parseInt(str.substring(1)); 
 		console.log("versionT: " + versionT); 
-		// $('body').append('<div>Transfer Protocol Version: ' + versionT + '</div>')
 	}else if (str.substring(0, 1) == "F"){
 		versionF = parseInt(str.substring(1));
 		console.log("versionF: " + versionF);
-		// $('body').append('<div>Firmware Version: ' + versionF + '</div>')  
 	}else if (str.substring(0, 1) == "H"){
 		versionH = parseInt(str.substring(1)); 
 		console.log("versionH: " + versionH);
-		// $('body').append('<div>Hardware Version: ' + versionH + '</div>')  
 	}else if (str.substring(0, 1) == "P"){
 		var vals = str.substring(1).split(","); 
 		numPlaysTotal = vals[0]; 
 		numPlaysLast = vals[1]; 
 		console.log("numPlaysTotal: " + numPlaysTotal); 
 		console.log("numPlaysLast: " + numPlaysLast); 
-		// $('body').append('<div>Total Number of Plays Ever: ' + numPlaysTotal +
 						   // '<br> Number of plays since last connect: ' + numPlaysLast + '</div>')  
 	}
 }
@@ -457,31 +451,6 @@ function processStories(){
 
 
 function extractBytes(arrOfBuffs){
-	//get wave files and get parameters to check each if number channels = 1, sample width = 2, and framerate = 16000; 
-	//If any do not check out, remove from story list. 
-	//calculate number of packets for each story, 
-
-	// $('body').append("<div>" + arrOfBuffs.length + " Files Selected.</div>");
-
-	// var li = $('#file-list ul').children().filter('li');
-	
-	// li.children().css("background-color", "transparent");
-
-	// var dataBufArray = [];  
-	// var stories = arrOfBuffs; 
-
-	// var storyLocation = []; 
-	// var storyLength = []; 
-
-	// var numErrorFiles = 0; 
-	// var filesTooLong = false; 
-	// var tooManyStories = false; 
-
-	// var maxNumStories = 10; 
-
-	// var locSum = 0;
-	// var dataSum = 0;  
-
 	StoriesList = [];
 
 	for (var i = 0; i < arrOfBuffs.length; i++){
@@ -495,38 +464,17 @@ function extractBytes(arrOfBuffs){
 
 		if (channels != 1 || sampleWidth != 2 || sampleRate != 16000){
 			currentStory.valid = false; 
-			// li.eq(i).children().css({
-			// 						"background-color": "red", 
-			// 						"opacity": ".6", 
-			// 					});
-			// 	errorFileFound = true; 
-			// 	numErrorFiles++; 
 		}else{
 			currentStory.valid = true; 
-			// li.eq(i).children().css({
-			// 					"background-color": "green", 
-			// 					"opacity": ".6", 
-			// 				});
 		}
 		
 		var dataSize = Math.ceil(arrOfBuffs[i].readInt32(40) / 4096) * 4096; 
 
 		currentStory.length = dataSize; 
 
-		// //dataSum is the dataSize + 5 bytes for every 256 byte packet 
-		// dataSum += dataSize + (dataSize/256)*5; 
-
-		// storyLength.push(dataSize);
-
 		var dataBuf = new dcodeIO.ByteBuffer(dataSize); 
 
-		// dataBufArray.push(dataBuf.append(arrOfBuffs[i].slice(44), 0)); 
-
 		currentStory.dataBytes = dataBuf.append(arrOfBuffs[i].slice(44), 0); 
-
-		// storyLocation.push(locSum); 
-
-		// locSum += storyLength[i];
 
 		StoriesList.push(currentStory);
 
@@ -537,53 +485,6 @@ function extractBytes(arrOfBuffs){
 		console.log("dataSize: " + dataSize); 
 		console.log("") 
 	};
-
-	// if (numErrorFiles){
-	// 	if (numErrorFiles > 1){
-	// 		$('#message-box p').text(numErrorFiles + ' files of ' + stories.length + ' are incompatible with HearMe. Please reselect files.');
-	// 	}else{
-	// 		$('#message-box p').text(numErrorFiles + ' file of ' + stories.length + ' is incompatible with HearMe. Please reselect files.');
-	// 	}
-	// 	return 
-	// }
-
-	// if (versionH == 4){
-	// 	if (dataSum > 1048512) filesTooLong = true;
-	// 	if (stories.length > 10) tooManyStories = true; 
-	// }else if(versionH == 5){
-	// 	if (dataSum > 2097088) filesTooLong = true; 
-	// 	if (stories.length > 20) tooManyStories = true; 
-	// 	maxNumStories == 20;
-	// }
-
-	// if (filesTooLong){
-	// 	$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total file size is larger than the capacity of the HearMe. Please reselect less files.</p>'); 
-	// 	return;  
-	// }
-
-	// if (tooManyStories){
-	// 	$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total number of stories exceed capacity of HearMe. Please reselect ' + maxNumStories +' or less files.</p>');
-	// 	return;  
-	// }
-
-	// if (stories.length == 1){
-	// 	$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + stories.length + ' story is ready to be uploaded. You may reselect files if you want.</p>');
-	// }else{
-	// 	$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + stories.length + ' stories are ready to be uploaded. You may reselect files if you want.</p>');
-	// }
-
-	// console.log("********************************************")
-
-	// $('#upload-button button').on('click', function(){
-		
-	// 	$('#upload-button button').attr('disabled','disabled');
-		
-	// 	setTimeout(function() {
-	// 		loadUpload(stories, storyLocation, storyLength, dataBufArray); 
-	// 	}, 1000);
-	// });
-
-	// $('#upload-button button').removeAttr('disabled');
 
 	processStories(); 
 
