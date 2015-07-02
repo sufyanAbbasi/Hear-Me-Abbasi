@@ -1,4 +1,4 @@
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ REQUIREMENTS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Requirements ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 if (!window['dcodeIO'] || !window['dcodeIO']['ByteBuffer']) {
    var noByteBufferMsg = "The ByteBuffer library is required by this app.";
@@ -6,7 +6,7 @@ if (!window['dcodeIO'] || !window['dcodeIO']['ByteBuffer']) {
    throw new Error(noByteBufferMsg);
 }
 
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL VARIABLES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 //HearMe Variables 
 var hearMeId;
@@ -21,13 +21,88 @@ var noneFound = false;
 var allPorts = [];
 var currentPortIndex = 0;
 
+var sendingData = false; 
+
+var StoriesList; 
+
 //Timer
 var searchTimer; 
 var connectionTimer; 
 var hearMeTimer; 
 
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Load Screens ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Sending Commands to HearMe ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function loadTitle(){
+	$('#top-bar li').css('opacity', '.5'); 
+	$('#title-tab').css('opacity', '1');
+	$('.arrow').css('transform', 'translateX(70px)');
+	$('#main-content').empty(); 
+	$('#main-content').load('ajax/../html_modules/title.html', findHearMe); 
+}
+
+function loadChooseFiles(){
+	$('#top-bar li').css('opacity', '.5'); 
+	$('#files-tab').css('opacity', '1');
+	$('.arrow').css('transform', 'translateX(243px)');
+	$('#main-content').empty(); 
+	$('#main-content').load('ajax/../html_modules/choose_file.html', function(){
+		$('#file-list button').on('click', function(){
+			chooseFiles(); 
+		})
+	});
+}
+
+function loadUpload(){
+	$('#top-bar li').css('opacity', '.5'); 
+	$('#upload-tab').css('opacity', '1');
+	$('.arrow').css('transform', 'translateX(420px)');
+	$('#main-content').load('ajax/../html_modules/upload.html', function(){
+		sendBytes();
+	});
+}
+
+function loadComplete(){
+	$('#top-bar li').css('opacity', '.5'); 
+	$('#complete-tab').css('opacity', '1');
+	$('.arrow').css('transform', 'translateX(594px)');
+	$('#main-content').empty(); 
+	$('#main-content').load('ajax/../html_modules/complete.html', function(){
+
+		$('#first').hover(function(){
+			$('#first').css('opacity', .75);
+		}, function(){
+			$('#first').css('opacity', .45);
+		}).bind('click', function(){
+			loadChooseFiles();
+		});
+
+		$('#second').hover(function(){
+			$('#second').css('opacity', .75);
+		}, function(){
+			$('#second').css('opacity', .45);
+		}).bind('click', function(){
+			$('#first').unbind().css('opacity', .25); 
+			$('#second p').replaceWith("<p>Unplug and<br>Connect Another<p>");
+			$('#second').unbind();
+		});
+	});
+}
+
+function loadError(){
+	$('#top-bar li').css('opacity', '.5'); 
+	$('#top-bar li').css('opacity', '.5');
+	$('.arrow').css('transform', 'translateX(340px)');
+	$('#main-content').empty();
+	$('#main-content').load('ajax/../html_modules/error.html', function(){
+		clearTimeout(hearMeTimer);
+		setTimeout(function() {
+			loadTitle();
+		}, 3000);
+	});   
+}	
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~ Sending Commands to HearME ~~~~~~~~~~~~~~~~~~~~~~~~*/
 function str2buf(str){
 	var newBuf = new dcodeIO.ByteBuffer(str.length); 
 	newBuf.writeString(str, 0);
@@ -75,13 +150,10 @@ var onDisconnect = function(result) {
 }
 
 function onReceiveCallback(info){
-	console.log("onReceiveCallback");
 	var byteBuffer = dcodeIO.ByteBuffer.wrap(info.data);
-	console.log(byteBuffer.toDebug());
 	var result = byteBuffer.readString(byteBuffer.capacity(),     // num characters to read
                               dcodeIO.ByteBuffer.METRICS_CHARS,
                               0);                                 // offset
-	console.log(result.string);
 	receivedHandler(result.string, info.connectionId);  
 }
 
@@ -95,11 +167,9 @@ function onConnect(connectionInfo){
 			console.log("connectionId: " + connectionInfo.connectionId); 
 			chrome.serial.onReceive.addListener(onReceiveCallback);
 			connectionTimer = setTimeout(function() {
-				console.log("I am connected to something that's not the device I want. Removing listener and disconnecting...");
 				chrome.serial.onReceive.removeListener(onReceiveCallback);
 
 				chrome.serial.disconnect(connectionInfo.connectionId, onDisconnect);
-				console.log("...trying to connect to the next possible one.")
 				connectWorkhorse();
 			}, 751);
 		}); 
@@ -112,7 +182,6 @@ function onConnect(connectionInfo){
 
 function connectWorkhorse() {
 	if (currentPortIndex < allPorts.length){
-		console.log("I am connectWorkhorse and will connect to ["+allPorts[currentPortIndex].path+"] currentPortIndex=" + currentPortIndex);
 		chrome.serial.connect(allPorts[currentPortIndex].path, {bitrate: 115200}, onConnect);	
 		currentPortIndex++;
 	} else {
@@ -129,7 +198,8 @@ function connectWorkhorse() {
 }
 
 function findHearMe(){
-	$('#title-tab').css('opacity', '1');
+	clearTimeout(searchTimer); 
+	hearMeId = null; 
 	noneFound = false;
 	chrome.serial.getDevices(function(ports){
 		allPorts = ports;
@@ -140,15 +210,18 @@ function findHearMe(){
 function pingHearMe(){
 	hearMeTimer = setTimeout(function() {
 		console.log("PING!");
-		chrome.serial.send(hearMeId, str2buf("P"), function(info){
-			if (chrome.runtime.lastError){
+		if (!sendingData){
+			chrome.serial.send(hearMeId, str2buf("P"), function(info){
+			if (!chrome.runtime.lastError){
 				if (info.error){
-					// $('body').append('<div>Connection was disrupted. Please restart the app.</div>')
-				}	
+				loadError();
+				return;
+			}	
+				pingHearMe(); 
 			}
-			pingHearMe(); 
 		})
-	}, 25000);
+		}
+	}, 2000);
 }
 
 function receivedHandler(str, connectionId){
@@ -160,16 +233,9 @@ function receivedHandler(str, connectionId){
 	}else if (str == "ME"){
 		// $('body').append('<div> Success! Choose files to upload: </div>');
 		clearTimeout(searchTimer);
-		$('#search').replaceWith('<p>Success!<p>');
+		$('#search').replaceWith('<p style="padding-top: 50px;">Success!<p>');
 		setTimeout(function() {
-			$('#title').remove(); 
-			$('#title-tab').css('opacity', '.5');
-			$('#main-content').load('ajax/../html_modules/choose_file.html', function(){
-				$('#file-list button').on('click', function(){
-					$('#files-tab').css('opacity', '1');
-					chooseFiles(); 
-				})
-			});
+			loadChooseFiles(); 
 		}, 2000);
 		 
 	}else if (str.substring(0, 1) == "T"){
@@ -198,16 +264,22 @@ function receivedHandler(str, connectionId){
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Byte Processing ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var totalBytes; 
+var totalNumBytes = 0;
+var progressByte = 0; 
 var dataTypeIndex = 0; 
 var byteIndex = 0; 
 
 
-function sendBytes(stories, storyLocation, storyLength, dataBufArray){
-	clearTimeout(hearMeTimer);
+function sendBytes(){
 	dataTypeIndex = 0
+	progressByte = 0; 
 	byteIndex = 0
-	totalBytes = [processHeader(stories, storyLocation, storyLength), processData(storyLocation, dataBufArray)]
-	dataSendWorkHorse()
+	totalBytes = [processHeader(), processData()]
+	totalNumBytes = totalBytes[0].length + totalBytes[1].length; 
+	console.log("total number of bytes to send: " + totalNumBytes);
+	clearTimeout(hearMeTimer);
+	sendingData = true; 
+	setTimeout(dataSendWorkHorse, 2000)
 }
 
 function dataSendWorkHorse(){
@@ -216,48 +288,57 @@ function dataSendWorkHorse(){
 			chrome.serial.send(hearMeId, totalBytes[dataTypeIndex][byteIndex], function(info){
 				if (info.error){
 					console.log("Problem sending data, terminate!"); 
-					// $('body').append('<div>Problem sending data, terminate!</div>'); 
+					inputCommand("DISCONNECT");
+					loadError();
 					return
 				}
-				console.log(byteIndex + " index packet sent.");
-				console.log(info.bytesSent + " bytes sent."); 
-				byteIndex++; 
-				setTimeout(dataSendWorkHorse, 1);
-				 
+				byteIndex++;
+				progressByte++;
+				console.log(byteIndex, progressByte);
+				$('.bar').css('transform', 'translateX('+ (-100 + (100*progressByte/totalNumBytes)) + '%)'); 
+				$('.log p').text(Math.round((100*progressByte/totalNumBytes)) + '%'); 
+				setTimeout(dataSendWorkHorse, 5); 
 			}); 
 		}else{
 			console.log("Done sending data for one type.");
+			byteIndex = 0; 
 			dataTypeIndex++; 
-			setTimeout(dataSendWorkHorse, 1);
+			setTimeout(dataSendWorkHorse, 5);
 		}
 	}else{
 		console.log("All Data is Sent."); 
-		pingHearMe(); 
+		$('.log p').text('Complete.'); 
+		sendingData = false;
+		setTimeout(function() {
+			pingHearMe();
+			loadComplete();
+		}, 3500);
+
 		// inputCommand("DISCONNECT");
 		// clearTimeout(hearMeTimer);
 	}
 }
 
-function processHeader(stories, storyLocation, storyLength){
+function processHeader(){
 	var bytesForI = []; 
 
-	bytesForI.push(str2buf("I"), int8buf(stories.length)); 
+	bytesForI.push(str2buf("I"), int8buf(StoriesList.length)); 
 
-	for (var i = 0; i < stories.length; i++){
-		bytesForI.push(int32buf(storyLocation[i]));
-		bytesForI.push(int32buf(storyLength[i]));
+	for (var i = 0; i < StoriesList.length; i++){
+		bytesForI.push(int32buf(StoriesList[i].location));
+		bytesForI.push(int32buf(StoriesList[i].length));
 	}
 
 	return bytesForI; 
 }
 
-function processData(storyLocation, dataBufArray){
+function processData(){
 	var bytesForD = [];
 
-	for (var i = 0; i < dataBufArray.length; i++){
-		var numPackets = dataBufArray[i].remaining()/256; 
+	for (var i = 0; i < StoriesList.length; i++){
+		var numPackets = StoriesList[i].dataBytes.remaining()/256; 
 
-		var currentDataLoc = storyLocation[i]; 
+		var currentDataLoc = StoriesList[i].location; 
 		var currentOffset = 0 
 
 		for (var k = 0; k < numPackets; k++){
@@ -268,11 +349,10 @@ function processData(storyLocation, dataBufArray){
 			packetBuf.BE(); 
 			packetBuf.writeInt32(currentDataLoc);
 
-			packetBuf.append(dataBufArray[i].slice(currentOffset, currentOffset + 256));
+			packetBuf.append(StoriesList[i].dataBytes.slice(currentOffset, currentOffset + 256));
 
 			packetBuf.offset = 0; 
 
-			console.log(packetBuf.toDebug()); 
 			bytesForD.push(packetBuf.toArrayBuffer());
 
 			currentOffset += 256; 
@@ -285,6 +365,96 @@ function processData(storyLocation, dataBufArray){
 
 }
 
+function Story(name, location, length, dataBytes, valid){
+	this.name = name; 
+	this.location = location; 
+	this.length = length; 
+	this.dataBytes = dataBytes; 
+	this.valid = valid; 
+}
+
+function processStories(){
+	var li = $('#file-list ul').children().filter('li');
+	
+	li.children().css("background-color", "transparent");
+
+	var numErrorFiles = 0; 
+	var filesTooLong = false; 
+	var tooManyStories = false; 
+
+	var maxNumStories = 10; 
+
+	var locSum = 0;
+	var dataSum = 0; 
+
+	for (var i = 0; i < StoriesList.length; i++){
+		if (!StoriesList[i].valid){
+			numErrorFiles++;
+			li.eq(i).children().css({
+								"background-color": "red", 
+								"opacity": ".6", 
+							}); 
+		}else{
+			li.eq(i).children().css({
+								"background-color": "green", 
+								"opacity": ".6", 
+							});
+		}
+
+		dataSum += StoriesList[i].length + (StoriesList[i].length/256)*5; 
+
+		StoriesList[i].location = locSum; 
+
+		locSum += StoriesList[i].length;
+
+	}
+
+	if (numErrorFiles){
+		if (numErrorFiles > 1){
+			$('#message-box p').text(numErrorFiles + ' files of ' + StoriesList.length + ' are incompatible with HearMe. Please reselect files.');
+		}else{
+			$('#message-box p').text(numErrorFiles + ' file of ' + StoriesList.length + ' is incompatible with HearMe. Please reselect files.');
+		}
+		return 
+	}
+
+	if (versionH == 4){
+		if (dataSum > 1048512) filesTooLong = true;
+		if (StoriesList.length > 10) tooManyStories = true; 
+	}else if(versionH == 5){
+		if (dataSum > 2097088) filesTooLong = true; 
+		if (StoriesList.length > 20) tooManyStories = true; 
+		maxNumStories == 20;
+	}
+
+	if (filesTooLong){
+		$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total file size is larger than the capacity of the HearMe. Please reselect less files.</p>'); 
+		return;  
+	}
+
+	if (tooManyStories){
+		$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total number of stories exceed capacity of HearMe. Please reselect ' + maxNumStories +' or less files.</p>');
+		return;  
+	}
+
+	if (StoriesList.length == 1){
+		$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + StoriesList.length + ' story is ready to be uploaded. You may reselect files if you want.</p>');
+	}else{
+		$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + StoriesList.length + ' stories are ready to be uploaded. You may reselect files if you want.</p>');
+	}
+
+	$('#upload-button button').on('click', function(){
+		
+		$('#upload-button button').attr('disabled','disabled');
+		
+		setTimeout(function() {
+			loadUpload(); 
+		}, 1000);
+	});
+
+	$('#upload-button button').removeAttr('disabled');
+}
+
 
 function extractBytes(arrOfBuffs){
 	//get wave files and get parameters to check each if number channels = 1, sample width = 2, and framerate = 16000; 
@@ -293,24 +463,29 @@ function extractBytes(arrOfBuffs){
 
 	// $('body').append("<div>" + arrOfBuffs.length + " Files Selected.</div>");
 
-	var li = $('#file-list ul').children().filter('li');
+	// var li = $('#file-list ul').children().filter('li');
 	
-	li.children().css("background-color", "transparent");
+	// li.children().css("background-color", "transparent");
 
-	var dataBufArray = [];  
-	var stories = arrOfBuffs; 
+	// var dataBufArray = [];  
+	// var stories = arrOfBuffs; 
 
-	var storyLocation = []; 
-	var storyLength = []; 
+	// var storyLocation = []; 
+	// var storyLength = []; 
 
-	var numErrorFiles = 0; 
-	var filesTooLong = false; 
-	var tooManyStories = false; 
+	// var numErrorFiles = 0; 
+	// var filesTooLong = false; 
+	// var tooManyStories = false; 
 
-	var locSum = 0;
-	var dataSum = 0;  
+	// var maxNumStories = 10; 
+
+	// var locSum = 0;
+	// var dataSum = 0;  
+
+	StoriesList = [];
 
 	for (var i = 0; i < arrOfBuffs.length; i++){
+		var currentStory = new Story(0, 0, 0, null, null); 
 
 		arrOfBuffs[i].LE(); 
 
@@ -319,30 +494,41 @@ function extractBytes(arrOfBuffs){
 		var sampleWidth = arrOfBuffs[i].readInt16(32);
 
 		if (channels != 1 || sampleWidth != 2 || sampleRate != 16000){
-			// $('body').append("<div>Story [" + i + "] is incompatible with HearMe.</div>"); 
-			li.eq(i).children().css("background-color", "red");
-			errorFileFound = true; 
-			numErrorFiles++; 
+			currentStory.valid = false; 
+			// li.eq(i).children().css({
+			// 						"background-color": "red", 
+			// 						"opacity": ".6", 
+			// 					});
+			// 	errorFileFound = true; 
+			// 	numErrorFiles++; 
 		}else{
-			li.eq(i).children().css("background-color", "green");
+			currentStory.valid = true; 
+			// li.eq(i).children().css({
+			// 					"background-color": "green", 
+			// 					"opacity": ".6", 
+			// 				});
 		}
 		
 		var dataSize = Math.ceil(arrOfBuffs[i].readInt32(40) / 4096) * 4096; 
 
-		//dataSum is the dataSize + 5 bytes for every 256 byte packet 
-		dataSum += dataSize + (dataSize/256)*5; 
+		currentStory.length = dataSize; 
 
-		storyLength.push(dataSize);
+		// //dataSum is the dataSize + 5 bytes for every 256 byte packet 
+		// dataSum += dataSize + (dataSize/256)*5; 
 
-		console.log(arrOfBuffs[i].offset, arrOfBuffs[i].limit);
+		// storyLength.push(dataSize);
 
 		var dataBuf = new dcodeIO.ByteBuffer(dataSize); 
 
-		dataBufArray.push(dataBuf.append(arrOfBuffs[i].slice(44), 0)); 
+		// dataBufArray.push(dataBuf.append(arrOfBuffs[i].slice(44), 0)); 
 
-		storyLocation.push(locSum); 
+		currentStory.dataBytes = dataBuf.append(arrOfBuffs[i].slice(44), 0); 
 
-		locSum += storyLength[i];
+		// storyLocation.push(locSum); 
+
+		// locSum += storyLength[i];
+
+		StoriesList.push(currentStory);
 
 		console.log("Header Data for Story: " + i);
 		console.log("channels: " + channels); 
@@ -352,58 +538,54 @@ function extractBytes(arrOfBuffs){
 		console.log("") 
 	};
 
-	if (numErrorFiles){
-		if (numErrorFiles > 1){
-			$('#message-box p').text(numErrorFiles + ' files are incompatible with HearMe. Please reselect files.');
-		}else{
-			$('#message-box p').text(numErrorFiles + ' file is incompatible with HearMe. Please reselect files.');
-		}
-		return 
-	}
+	// if (numErrorFiles){
+	// 	if (numErrorFiles > 1){
+	// 		$('#message-box p').text(numErrorFiles + ' files of ' + stories.length + ' are incompatible with HearMe. Please reselect files.');
+	// 	}else{
+	// 		$('#message-box p').text(numErrorFiles + ' file of ' + stories.length + ' is incompatible with HearMe. Please reselect files.');
+	// 	}
+	// 	return 
+	// }
 
-	if (versionH == 4){
-		if (dataSum > 1048512) filesTooLong = true;
-		if (stories.length > 10) tooManyStories = true; 
-	}else if(versionH == 5){
-		if (dataSum > 2097088) filesTooLong = true; 
-		if (stories.length > 20) tooManyStories = true; 
-	}
+	// if (versionH == 4){
+	// 	if (dataSum > 1048512) filesTooLong = true;
+	// 	if (stories.length > 10) tooManyStories = true; 
+	// }else if(versionH == 5){
+	// 	if (dataSum > 2097088) filesTooLong = true; 
+	// 	if (stories.length > 20) tooManyStories = true; 
+	// 	maxNumStories == 20;
+	// }
 
-	if (filesTooLong){
-		$('#message-box p').text('Total file size is larger than the capacity of the HearMe. Please reselect less files.'); 
-		return;  
-	}
+	// if (filesTooLong){
+	// 	$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total file size is larger than the capacity of the HearMe. Please reselect less files.</p>'); 
+	// 	return;  
+	// }
 
-	if (tooManyStories){
-		$('#message-box p').text('Total number of stories exceed capacity of HearMe. Please reselect less files.');
-		return;  
-	}
+	// if (tooManyStories){
+	// 	$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total number of stories exceed capacity of HearMe. Please reselect ' + maxNumStories +' or less files.</p>');
+	// 	return;  
+	// }
 
-	if (stories.length == 1){
-		$('#message-box p').text(stories.length + ' story is ready to be uploaded. You may reselect files if you want.');
-	}else{
-		$('#message-box p').text(stories.length + ' stories are ready to be uploaded. You may reselect files if you want.');
-	}
+	// if (stories.length == 1){
+	// 	$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + stories.length + ' story is ready to be uploaded. You may reselect files if you want.</p>');
+	// }else{
+	// 	$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + stories.length + ' stories are ready to be uploaded. You may reselect files if you want.</p>');
+	// }
 
-	
-	console.log(storyLocation, storyLength);
+	// console.log("********************************************")
 
-	console.log("********************************************")
+	// $('#upload-button button').on('click', function(){
+		
+	// 	$('#upload-button button').attr('disabled','disabled');
+		
+	// 	setTimeout(function() {
+	// 		loadUpload(stories, storyLocation, storyLength, dataBufArray); 
+	// 	}, 1000);
+	// });
 
-	$('#upload-button button').on('click', function(){
-		setTimeout(function() {
-			$('#files-tab').css('opacity', '.5');
-			$('#file-directory').remove(); 
-			$('#main-content').load('ajax/../html_modules/uoload.html', function(){
-				$('#upload-tab').css('opacity', '1');
-				sendBytes(stories, storyLocation, storyLength, dataBufArray)
-			});
-		}, 500);
-	});
+	// $('#upload-button button').removeAttr('disabled');
 
-	$('#upload-button button').removeAttr('disabled');
-
-	
+	processStories(); 
 
 }
 
@@ -419,6 +601,8 @@ function convertToFiles(fileEntries){
 				throw new Error(chrome.runtime.lastError); 
 			};
 
+		$('#message-box p').text('Processing files...');
+
 		var li = $('#file-list ul').children().filter('li');
 
 
@@ -432,6 +616,7 @@ function convertToFiles(fileEntries){
 	    							alert("Unable to retrieve file properties: " + error.code);
 						}); 
 		}else{
+			$('#message-box p').text('Verifying file compatibility...');
 			console.log("Done Processing Files");
 			extractBytes(arrOfBuffs); 
 		}
@@ -444,7 +629,7 @@ function convertToFiles(fileEntries){
 			}
 	}catch(e){
 		console.log("No Files Chosen.");
-		$('#message-box p').text('No Files Chosen. Please press the "choose files" button.');
+		$('#message-box p').text('No files chosen. Please press the "choose files" button.');
 		var li = $('#file-list ul').children().filter('li');
 		li.children().css("background-color", "transparent");
 	}
@@ -469,10 +654,13 @@ function chooseFiles(){
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Initialize Page Processes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-$('#main-content').load('ajax/../html_modules/title.html', findHearMe); 
 
+loadTitle(); 
+
+// loadChooseFiles();
 
 chrome.runtime.onSuspend.addListener(function(){
+	console.log("cleanup");
 	inputCommand("DISCONNECT"); 
 })
 

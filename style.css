@@ -12,7 +12,7 @@
 		position: absolute;
 		width: 500px; 
 		height: 400px;
-		background-color: rgba(180, 180, 180, .5);
+		background-color: rgba(180, 180, 180, .70);
 		top: 110px;
 		right: 100px;
 	}
@@ -26,7 +26,7 @@
 		margin: 0px;
 	}
 
-	ul {
+	#top-bar ul {
 	    list-style-type: none;
 	    margin: 0;
 	    padding: 0;
@@ -36,6 +36,7 @@
 	#top-bar li {
 		float: left;
 		opacity: .5;
+		transition: opacity .1s ease-in-out;
 	}
 
 	#top-bar p {
@@ -48,27 +49,38 @@
 
 	}
 
+	.arrow {
+		width: 0; 
+		height: 0; 
+		border-left: 15px solid transparent;
+		border-right: 15px solid transparent;
+		border-top: 15px solid rgba(50, 50, 50, .85);
+		top: 65px;
+		transition: transform .5s ease-in-out;
+	}
+
 	#logo {
 		position: absolute;
 		bottom: 0px;
 		left: 0px;
 	}
 
-		#title{
-			text-align: center;
-			line-height: 20px;
-		}
+	#title{
+		padding-top: 50px;
+		text-align: center;
+		line-height: 20px;
+	}
 
-		#title p{
-			color: white;
-			font-size: 35px;
-		}
+	#title p{
+		color: white;
+		font-size: 35px;
+	}
 
 	#search{
 		position: absolute;
 		width: 120px;
 		height: 120px;
-		bottom: 110px;
+		bottom: 55px;
 		left: 120px;
 	}
 
@@ -89,15 +101,35 @@
 
 	}
 
-	#file-list li{
-		display: block;
-		height: 10px;
-		padding: 1px;
+	.list-container{
+		height: 300px;
+		/*background-color: red;*/
+		overflow: auto;
 	}
 
 	#file-list ul{
+		list-style-type: none;
+	    margin: 0;
+	    padding: 0;
 		padding-top: 10px;
-		overflow: visible;
+		overflow: scroll;
+	}
+
+	#file-list li{
+		display: block;
+		height: 14px;
+		margin-left: 5px;
+		overflow-y: visible;
+		padding-right: 6px;
+	}
+
+	#file-list li div{
+		height: 13px;
+		width: 13px;
+		float: right;
+		border-radius: 50%;
+		border: 1px solid rgba(50, 50, 50, .3);
+
 	}
 
 	#file-list button{
@@ -108,19 +140,9 @@
 		height: 30px;
 	}
 
-	#file-list li div{
-		position: absolute;
-		height: 15px;
-		width: 15px;
-		right: 5px;
-		border-radius: 50%;
-		border: 1px solid rgba(50, 50, 50, .3);
-
-	}
-
 	#message-box{
 		position: absolute;
-		height: 180px;
+		height: 130px;
 		width: 230px;
 		top: 20px;
 		right: 15px;
@@ -129,6 +151,11 @@
 		line-height: 30px;
 		vertical-align: middle;
 	}
+
+	#message-box p{
+		margin-top: 35px;
+	}
+
 
 	#upload-button button{
 		position: absolute;
@@ -144,7 +171,101 @@
 		position: absolute;
 		width: 80%;
 		height: 50px;
-		top: 175px;
+		bottom: 100px;
 		right: 10%;
-		background-color: blue;
+		background-color: rgba(250, 250, 250, .6);
+		margin: 0px;
+		overflow: hidden;
 	}
+
+	.bar{
+		width: 100%; 
+		height: 100%;
+		background-color: rgba(50, 50, 50, .5);
+		transform: translateX(-100%);
+	}
+
+	.log{
+		position: absolute;
+		width: 150px;
+		height: 100px;
+		top: 100px;
+		left: 170px;
+		text-align: center;
+		vertical-align: middle;
+		line-height: 50px;
+	}
+
+	.log{
+		color: white;
+		font-size: 30px;
+	}
+
+	#complete-screen {
+		text-align: center;
+		line-height: 45px;
+		vertical-align: middle;
+	}
+
+	#complete-screen p{
+		margin-top: 25px;
+		color: white;
+		font-size: 20px;
+		vertical-align: middle;
+	}
+
+	#complete-screen .option{
+		position: absolute;
+		width: 150px;
+		height: 115px; 
+		bottom: 55px;
+		background-color: rgb(50, 50, 50);
+		opacity: .45;
+		border-radius: 10px;
+		line-height: 30px;
+	}
+
+	#complete-screen .option p{
+		margin-top: 28px;
+		font-size: 17px;
+	}
+
+	#complete-screen #first{
+		left: 73px;
+	}
+
+	#complete-screen #second{
+		right: 73px;
+	}
+
+	#error{
+		text-align: center;
+		line-height: 65px;
+		vertical-align: middle;
+	}
+
+	#error p{
+		margin-top: 125px;
+		color: white;
+		font-size: 28px;
+		vertical-align: middle;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
