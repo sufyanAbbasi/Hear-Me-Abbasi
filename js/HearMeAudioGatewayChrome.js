@@ -23,7 +23,7 @@ var currentPortIndex = 0;
 
 var sendingData = false; 
 
-var StoriesList; 
+var StoriesList = []; 
 
 //Timer
 var searchTimer; 
@@ -46,9 +46,25 @@ function loadChooseFiles(){
 	$('.arrow').css('transform', 'translateX(243px)');
 	$('#main-content').empty(); 
 	$('#main-content').load('ajax/../html_modules/choose_file.html', function(){
+		processStories();
+		$('#hearme-info').append('<p>Total Number Of Plays: ' + numPlaysTotal +'</p>').append('<p>Since Last Upload: ' + numPlaysLast + '</p>');
 		$('#file-list button').on('click', function(){
 			chooseFiles(); 
 		})
+		$('.list-container').on('click', '.x-button', function(){
+			var index = $('.list-container li').index($(this).parent()); 
+			StoriesList.splice(index, 1); 
+			processStories();
+		})
+
+		$('#upload-button button').on('click', function(){
+		
+			$('#upload-button button').attr('disabled','disabled');
+			
+			setTimeout(function() {
+				loadUpload(); 
+			}, 1000);
+		});
 	});
 }
 
@@ -56,18 +72,19 @@ function loadUpload(){
 	$('#top-bar li').css('opacity', '.5'); 
 	$('#upload-tab').css('opacity', '1');
 	$('.arrow').css('transform', 'translateX(420px)');
+	$('#main-content').empty();
 	$('#main-content').load('ajax/../html_modules/upload.html', function(){
 		sendBytes();
 	});
 }
 
 function loadComplete(){
+	sendingData = false;
 	$('#top-bar li').css('opacity', '.5'); 
 	$('#complete-tab').css('opacity', '1');
 	$('.arrow').css('transform', 'translateX(594px)');
 	$('#main-content').empty(); 
 	$('#main-content').load('ajax/../html_modules/complete.html', function(){
-
 		$('#first').hover(function(){
 			$('#first').css('opacity', .75);
 		}, function(){
@@ -94,13 +111,13 @@ function loadError(){
 	$('.arrow').css('transform', 'translateX(340px)');
 	$('#main-content').empty();
 	$('#main-content').load('ajax/../html_modules/error.html', function(){
-		clearTimeout(hearMeTimer);
+		inputCommand("DISCONNECT"); 
+		clearInterval(hearMeTimer);
 		setTimeout(function() {
 			loadTitle();
 		}, 3000);
 	});   
-}	
-
+}
 
 /*~~~~~~~~~~~~~~~~~~~~~~~ Sending Commands to HearME ~~~~~~~~~~~~~~~~~~~~~~~~*/
 function str2buf(str){
@@ -123,19 +140,45 @@ function int32buf(num){
 }
 
 function inputCommand(){
-	for (var i = 0; i < arguments.length; i++){
-		if (arguments[i] == "DISCONNECT"){
-			clearTimeout(hearMeTimer); 
-			chrome.serial.onReceive.removeListener(onReceiveCallback);
-			chrome.serial.send(hearMeId, str2buf("R"), function(info){
-				chrome.serial.disconnect(hearMeId, onDisconnect);
-			});
-
-			return; 
+	try{
+		if (chrome.runtime.lastError){
+			console.log("No HearMe Connected.");
+			return;
 		}
-		chrome.serial.send(hearMeId, str2buf(arguments[i]), function(info){});
+
+		for (var i = 0; i < arguments.length; i++){
+			if (arguments[i] == "DISCONNECT"){
+				chrome.serial.onReceive.removeListener(onReceiveCallback);
+				chrome.serial.send(hearMeId, str2buf("R"), function(info){
+					chrome.serial.disconnect(hearMeId, onDisconnect);
+				});
+				return; 
+			}
+			if (arguments[i] == "CLOSE"){
+				chrome.serial.onReceive.removeListener(onReceiveCallback);
+				chrome.serial.send(hearMeId, str2buf("R"), function(info){
+					chrome.serial.disconnect(hearMeId, function(){
+						chrome.app.window.current().close();
+					});
+				});
+				return; 
+			}
+			chrome.serial.send(hearMeId, str2buf(arguments[i]), function(info){});
+		}
+	}catch(e){
+		console.log(e); 
 	}
+	
 }
+
+function closeApp(){
+	if(hearMeId){
+		inputCommand("CLOSE");  
+
+	}else{
+		chrome.app.window.current().close();
+	}
+}	
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Connecting to HearMe ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -207,18 +250,16 @@ function findHearMe(){
 }
 
 function pingHearMe(){
-	hearMeTimer = setTimeout(function() {
+	hearMeTimer = setInterval(function() {
 		console.log("PING!");
 		if (!sendingData){
 			chrome.serial.send(hearMeId, str2buf("P"), function(info){
 			if (!chrome.runtime.lastError){
 				if (info.error){
-				loadError();
-				return;
-			}	
-				pingHearMe(); 
-			}
-		})
+					loadError();
+					return;
+				}	
+			}});
 		}
 	}, 2000);
 }
@@ -256,7 +297,7 @@ function receivedHandler(str, connectionId){
 }
 
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Byte Processing ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Byte Processing and Sending ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var totalBytes; 
 var totalNumBytes = 0;
 var progressByte = 0; 
@@ -265,14 +306,15 @@ var byteIndex = 0;
 
 
 function sendBytes(){
-	dataTypeIndex = 0
+	totalBytes = []; 
+	totalNumBytes = 0;
 	progressByte = 0; 
-	byteIndex = 0
-	totalBytes = [processHeader(), processData()]
+	dataTypeIndex = 0; 
+	byteIndex = 0; 
+	totalBytes = [processHeader(), processData()];
 	totalNumBytes = totalBytes[0].length + totalBytes[1].length; 
 	console.log("total number of bytes to send: " + totalNumBytes);
-	clearTimeout(hearMeTimer);
-	sendingData = true; 
+	sendingData = true;
 	setTimeout(dataSendWorkHorse, 2000)
 }
 
@@ -280,36 +322,34 @@ function dataSendWorkHorse(){
 	if (dataTypeIndex < totalBytes.length){
 		if (byteIndex < totalBytes[dataTypeIndex].length){
 			chrome.serial.send(hearMeId, totalBytes[dataTypeIndex][byteIndex], function(info){
-				if (info.error){
-					console.log("Problem sending data, terminate!"); 
-					inputCommand("DISCONNECT");
-					loadError();
-					return
+				if (chrome.runtime.lastError){
+					if (info.error){
+						console.log(info.error);
+						console.log("Problem sending data, terminate!"); 
+						inputCommand("DISCONNECT");
+						loadError();
+						return
+					}
 				}
+				
 				byteIndex++;
 				progressByte++;
-				console.log(byteIndex, progressByte);
 				$('.bar').css('transform', 'translateX('+ (-100 + (100*progressByte/totalNumBytes)) + '%)'); 
 				$('.log p').text(Math.round((100*progressByte/totalNumBytes)) + '%'); 
-				setTimeout(dataSendWorkHorse, 5); 
+				setTimeout(dataSendWorkHorse, 10); 
 			}); 
 		}else{
 			console.log("Done sending data for one type.");
 			byteIndex = 0; 
 			dataTypeIndex++; 
-			setTimeout(dataSendWorkHorse, 5);
+			setTimeout(dataSendWorkHorse, 10);
 		}
 	}else{
 		console.log("All Data is Sent."); 
 		$('.log p').text('Complete.'); 
-		sendingData = false;
 		setTimeout(function() {
-			pingHearMe();
 			loadComplete();
 		}, 3500);
-
-		// inputCommand("DISCONNECT");
-		// clearTimeout(hearMeTimer);
 	}
 }
 
@@ -319,6 +359,7 @@ function processHeader(){
 	bytesForI.push(str2buf("I"), int8buf(StoriesList.length)); 
 
 	for (var i = 0; i < StoriesList.length; i++){
+		console.log(StoriesList[i].location, StoriesList[i].length);
 		bytesForI.push(int32buf(StoriesList[i].location));
 		bytesForI.push(int32buf(StoriesList[i].length));
 	}
@@ -359,6 +400,10 @@ function processData(){
 
 }
 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Story Processing ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
 function Story(name, location, length, dataBytes, valid){
 	this.name = name; 
 	this.location = location; 
@@ -368,9 +413,17 @@ function Story(name, location, length, dataBytes, valid){
 }
 
 function processStories(){
+	$('#upload-button button').attr('disabled','disabled');
+
 	var li = $('#file-list ul').children().filter('li');
+
+	li.contents().filter(function(){
+    	return (this.nodeType == 3);
+	}).remove();
 	
-	li.children().css("background-color", "transparent");
+	li.children().filter('.validation').css("background-color", "transparent");
+
+	li.children().filter(':not(.validation)').remove();
 
 	var numErrorFiles = 0; 
 	var filesTooLong = false; 
@@ -381,19 +434,33 @@ function processStories(){
 	var locSum = 0;
 	var dataSum = 0; 
 
+	if (StoriesList.length == 0) {
+		$('#file-info p').text('No files chosen. Please press the "choose files" button.');
+		return;
+	}
+
 	for (var i = 0; i < StoriesList.length; i++){
+		if (i >= 20){
+			$('.list-container ul').append('<li><div class="validation"></div></li><hr>')
+			li = $('#file-list ul').children().filter('li');
+		}
+
+		li.eq(i).append(StoriesList[i].name).prepend('<div class="x-button"><p>&#10006</p></div><div class="spacer"><div>');
+
+
 		if (!StoriesList[i].valid){
 			numErrorFiles++;
-			li.eq(i).children().css({
+			li.eq(i).children().filter('.validation').css({
 								"background-color": "red", 
 								"opacity": ".6", 
 							}); 
 		}else{
-			li.eq(i).children().css({
+			li.eq(i).children().filter('.validation').css({
 								"background-color": "green", 
 								"opacity": ".6", 
 							});
 		}
+
 
 		dataSum += StoriesList[i].length + (StoriesList[i].length/256)*5; 
 
@@ -405,9 +472,9 @@ function processStories(){
 
 	if (numErrorFiles){
 		if (numErrorFiles > 1){
-			$('#message-box p').text(numErrorFiles + ' files of ' + StoriesList.length + ' are incompatible with HearMe. Please reselect files.');
+			$('#file-info p').text(numErrorFiles + ' files of ' + StoriesList.length + ' are incompatible with HearMe. Please remove bad files.');
 		}else{
-			$('#message-box p').text(numErrorFiles + ' file of ' + StoriesList.length + ' is incompatible with HearMe. Please reselect files.');
+			$('#file-info p').text(numErrorFiles + ' file of ' + StoriesList.length + ' is incompatible with HearMe. Please remove bad file.');
 		}
 		return 
 	}
@@ -422,39 +489,32 @@ function processStories(){
 	}
 
 	if (filesTooLong){
-		$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total file size is larger than the capacity of the HearMe. Please reselect less files.</p>'); 
+		$('#file-info p').replaceWith('<p style="margin-top: 25px;">Total file size is larger than the capacity of the HearMe. Please remove some files.</p>'); 
 		return;  
 	}
 
 	if (tooManyStories){
-		$('#message-box p').replaceWith('<p style="margin-top: 25px;">Total number of stories exceed capacity of HearMe. Please reselect ' + maxNumStories +' or less files.</p>');
+		$('#file-info p').replaceWith('<p style="margin-top: 25px;">Total number of stories exceed capacity of HearMe. Please reselect ' + maxNumStories +' or less files.</p>');
 		return;  
 	}
 
 	if (StoriesList.length == 1){
-		$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + StoriesList.length + ' story is ready to be uploaded. You may reselect files if you want.</p>');
+		$('#file-info p').replaceWith('<p style="margin-top: 35px;">' + StoriesList.length + ' story is ready to be uploaded. You may reselect files if you want.</p>');
 	}else{
-		$('#message-box p').replaceWith('<p style="margin-top: 35px;">' + StoriesList.length + ' stories are ready to be uploaded. You may reselect files if you want.</p>');
+		$('#file-info p').replaceWith('<p style="margin-top: 35px;">' + StoriesList.length + ' stories are ready to be uploaded. You may reselect files if you want.</p>');
 	}
-
-	$('#upload-button button').on('click', function(){
-		
-		$('#upload-button button').attr('disabled','disabled');
-		
-		setTimeout(function() {
-			loadUpload(); 
-		}, 1000);
-	});
 
 	$('#upload-button button').removeAttr('disabled');
 }
 
 
-function extractBytes(arrOfBuffs){
-	StoriesList = [];
+function extractBytes(arrOfBuffs, names){
+	// StoriesList = [];
 
 	for (var i = 0; i < arrOfBuffs.length; i++){
 		var currentStory = new Story(0, 0, 0, null, null); 
+
+		currentStory.name = names[i];
 
 		arrOfBuffs[i].LE(); 
 
@@ -478,6 +538,9 @@ function extractBytes(arrOfBuffs){
 
 		StoriesList.push(currentStory);
 
+		console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+		console.log(StoriesList);
+
 		console.log("Header Data for Story: " + i);
 		console.log("channels: " + channels); 
 		console.log("sampleWidth: " + sampleWidth);
@@ -494,7 +557,8 @@ function extractBytes(arrOfBuffs){
 
 var fileIndex = 0;
 var reader = new FileReader(); 
-var arrOfBuffs = []; 
+var arrOfBuffs = [];
+var names = [];  
 
 function convertToFiles(fileEntries){
 	try{
@@ -502,14 +566,9 @@ function convertToFiles(fileEntries){
 				throw new Error(chrome.runtime.lastError); 
 			};
 
-		$('#message-box p').text('Processing files...');
+		$('#file-info p').text('Processing files...');
 
-		var li = $('#file-list ul').children().filter('li');
-
-
-
-		if (fileIndex < fileEntries.length){
-			li.eq(fileIndex).append(fileEntries[fileIndex].name);
+		if (fileIndex < fileEntries.length){ 
 
 			fileEntries[fileIndex].file(function success(file) {
 	    							reader.readAsArrayBuffer(file);
@@ -517,33 +576,28 @@ function convertToFiles(fileEntries){
 	    							alert("Unable to retrieve file properties: " + error.code);
 						}); 
 		}else{
-			$('#message-box p').text('Verifying file compatibility...');
+			$('#file-info p').text('Verifying file compatibility...');
 			console.log("Done Processing Files");
-			extractBytes(arrOfBuffs); 
+			extractBytes(arrOfBuffs, names); 
 		}
 
 		reader.onload = function(e) {
 	  			arrOfBuffs.push(dcodeIO.ByteBuffer.wrap(reader.result));
+	  			names.push(fileEntries[fileIndex].name);
 	  			console.log("Converted to File, Number: " + fileIndex);  
 	  			fileIndex++; 
 	  			convertToFiles(fileEntries);
 			}
 	}catch(e){
 		console.log("No Files Chosen.");
-		$('#message-box p').text('No files chosen. Please press the "choose files" button.');
-		var li = $('#file-list ul').children().filter('li');
-		li.children().css("background-color", "transparent");
 	}
 }
 
 function chooseFiles(){
-	$('#upload-button button').attr('disabled','disabled');
-	var li = $('#file-list ul').children().filter('li');
-	li.contents().filter(function(){
-    	return (this.nodeType == 3);
-	}).remove();
 	fileIndex = 0;
-	arrOfBuffs = []; 
+	reader = new FileReader(); 
+	arrOfBuffs = [];
+	names = [];  
 	chrome.fileSystem.chooseEntry( {
       type: 'openFile',
       suggestedName: 'story_name.wav',
@@ -556,9 +610,16 @@ function chooseFiles(){
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Initialize Page Processes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-loadTitle(); 
+loadTitle();
 
-// loadChooseFiles();
+$('#disconnect-button').css('opacity', .45).hover(function(){
+		$('#disconnect-button').css('opacity', .75);
+	}, function(){
+		$('#disconnect-button').css('opacity', .45);
+	}).bind('click', function(){
+		closeApp();
+		$('#disconnect-button').unbind().css('opacity', .25);
+	});
 
 chrome.runtime.onSuspend.addListener(function(){
 	console.log("cleanup");

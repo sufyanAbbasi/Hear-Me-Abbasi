@@ -65,6 +65,22 @@
 		left: 0px;
 	}
 
+	#disconnect-button{
+		position: absolute;
+		bottom: 2px;
+		right: 2px;
+		height: 30px;
+		width: 100px;
+		background-color: rgb(50, 50, 50);
+		opacity: .25;
+		line-height: 0px;
+		text-align: center;
+	}
+
+	#disconnect-button p{
+		color: white;
+	}
+
 	#title{
 		padding-top: 50px;
 		text-align: center;
@@ -123,7 +139,7 @@
 		padding-right: 6px;
 	}
 
-	#file-list li div{
+	#file-list li .validation{
 		height: 13px;
 		width: 13px;
 		float: right;
@@ -131,6 +147,33 @@
 		border: 1px solid rgba(50, 50, 50, .3);
 
 	}
+
+	#file-list li .x-button{
+		height: 11px;
+		width: 11px;
+		float: left;
+		border-radius: 50%;
+		font-color: ;
+		background-color: rgba(50, 50, 50, .5);
+		text-align: center;
+		vertical-align: middle;
+		cursor: pointer;
+	}
+
+	#file-list li .x-button p{
+		top:0px;
+		line-height: 0px;
+		font-size: 7px; 
+		color: rgba(255, 255, 255, .9);
+		margin-top: 6px;
+	}
+
+	#file-list li .spacer{
+		height: 8px;
+		width: 8px;
+		float: left;
+	}
+
 
 	#file-list button{
 		position: absolute;
@@ -140,26 +183,34 @@
 		height: 30px;
 	}
 
-	#message-box{
+	.message-box{
 		position: absolute;
 		height: 130px;
-		width: 230px;
-		top: 20px;
+		width: 225px;
 		right: 15px;
 		background-color: rgba(250, 250, 250, .6);
 		text-align: center;
-		line-height: 30px;
 		vertical-align: middle;
 	}
 
-	#message-box p{
+	#file-info p{
 		margin-top: 35px;
+	}
+
+	#file-info{
+		top: 20px;
+		line-height: 30px;
+	}
+
+	#hearme-info{
+		bottom: 105px;
+		line-height: 21px;
 	}
 
 
 	#upload-button button{
 		position: absolute;
-		width: 230px;
+		width: 225px;
 		height: 68px;
 		bottom: 20px;
 		right: 15px;
