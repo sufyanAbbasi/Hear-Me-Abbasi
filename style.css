@@ -128,14 +128,13 @@
 	    margin: 0;
 	    padding: 0;
 		padding-top: 10px;
-		overflow: scroll;
 	}
 
 	#file-list li{
 		display: block;
-		height: 14px;
+		height: 18px;
 		margin-left: 5px;
-		overflow-y: visible;
+		overflow: auto;
 		padding-right: 6px;
 	}
 
