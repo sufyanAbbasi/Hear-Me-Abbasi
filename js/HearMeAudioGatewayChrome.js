@@ -16,8 +16,6 @@ var versionH;
 var numPlaysTotal;
 var numPlaysLast; 
 
-var noneFound = false; 
-
 var allPorts = [];
 var currentPortIndex = 0;
 
@@ -233,16 +231,13 @@ function connectWorkhorse() {
 		searchTimer = setTimeout(function() {
 			$('#title #looking').text('This may take a while. Please check that HearMe is plugged in and not connected to any other applications.');
 		}, 30000);
-		noneFound = true; 
 		currentPortIndex = 0; 
 		findHearMe(); 
 	}
 }
 
 function findHearMe(){
-	clearTimeout(searchTimer); 
 	hearMeId = null; 
-	noneFound = false;
 	chrome.serial.getDevices(function(ports){
 		allPorts = ports;
 		connectWorkhorse();
@@ -588,6 +583,7 @@ function convertToFiles(fileEntries){
 			}
 	}catch(e){
 		console.log("No Files Chosen.");
+		console.log(e);
 	}
 }
 

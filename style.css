@@ -75,6 +75,7 @@
 		opacity: .25;
 		line-height: 0px;
 		text-align: center;
+		cursor: pointer;
 	}
 
 	#disconnect-button p{
@@ -134,7 +135,7 @@
 		display: block;
 		height: 18px;
 		margin-left: 5px;
-		overflow: auto;
+		overflow: hidden;
 		padding-right: 6px;
 	}
 
