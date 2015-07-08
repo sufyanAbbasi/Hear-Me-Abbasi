@@ -3,10 +3,6 @@ chrome.app.runtime.onLaunched.addListener(function() {
     id: 'main',
     bounds: { width: 1000, height: 800},
     "resizable": false,
-  }, function(win){
-  	win.onClosed.addListener(function() {
-    	inputCommand("DISCONNECT");
-  	});
   });
 });
 

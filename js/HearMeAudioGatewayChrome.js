@@ -251,7 +251,6 @@ function findHearMe(){
 
 function pingHearMe(){
 	hearMeTimer = setInterval(function() {
-		console.log("PING!");
 		if (!sendingData){
 			chrome.serial.send(hearMeId, str2buf("P"), function(info){
 			if (!chrome.runtime.lastError){
@@ -290,8 +289,8 @@ function receivedHandler(str, connectionId){
 		var vals = str.substring(1).split(","); 
 		numPlaysTotal = vals[0]; 
 		numPlaysLast = vals[1]; 
-		console.log("numPlaysTotal: " + numPlaysTotal); 
-		console.log("numPlaysLast: " + numPlaysLast); 
+		// console.log("numPlaysTotal: " + numPlaysTotal); 
+		// console.log("numPlaysLast: " + numPlaysLast); 
 						   // '<br> Number of plays since last connect: ' + numPlaysLast + '</div>')  
 	}
 }
@@ -538,8 +537,7 @@ function extractBytes(arrOfBuffs, names){
 
 		StoriesList.push(currentStory);
 
-		console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
-		console.log(StoriesList);
+		console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
 		console.log("Header Data for Story: " + i);
 		console.log("channels: " + channels); 
@@ -620,11 +618,6 @@ $('#disconnect-button').css('opacity', .45).hover(function(){
 		closeApp();
 		$('#disconnect-button').unbind().css('opacity', .25);
 	});
-
-chrome.runtime.onSuspend.addListener(function(){
-	console.log("cleanup");
-	inputCommand("DISCONNECT"); 
-})
 
 
 
