@@ -618,9 +618,11 @@ checkWindowOS();
 function checkWindowOS(){
 	chrome.runtime.getPlatformInfo(function(platformInfo){
 		if (platformInfo.os == "win"){
-			$('#main-content').append('<a download="driver/HearMe_Driver.inf.zip" href="driver/HearMe_Driver.inf.zip" target="_blank"; style="position: absolute; bottom: 10px; left: 30px;" id="driver">If you are using a Window OS, click here to download the HearMe driver.</a>')
+			$('#main-content').append('<a download="driver/HearMe_Driver.inf.zip" href="driver/HearMe_Driver.inf.zip" style="position: absolute; bottom: 10px; left: 30px;" id="driver">If you are using a Window OS, click here to download the HearMe driver.</a>')
 			$('#main-content #driver').on('click', function(){
-				$(this).css('color', 'purple'); 
+				$(this).css({'color': 'purple',
+							 'left': '160px'
+							}).text("Check your Downloads folder.")
 			});
 		}
 	});
