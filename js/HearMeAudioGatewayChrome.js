@@ -439,9 +439,16 @@ function processStories(){
 			li = $('#file-list ul').children().filter('li');
 		}
 
-		li.eq(i).append(StoriesList[i].name).prepend('<div class="x-button"><p>&#10006</p></div><div class="spacer"><div>');
+		storyName = StoriesList[i].name.split('.wav')[0]; 
 
+		if (storyName.length >= 20){
+			storyName = storyName.substring(0, 18);
+			li.eq(i).attr('title', StoriesList[i].name).append(storyName + "...wav").prepend('<div class="x-button"><p>&#10006</p></div><div class="spacer"><div>'); 
+		}else{
+			li.eq(i).append(StoriesList[i].name).prepend('<div class="x-button"><p>&#10006</p></div><div class="spacer"><div>');
+		}
 
+		
 		if (!StoriesList[i].valid){
 			numErrorFiles++;
 			li.eq(i).children().filter('.validation').css({
