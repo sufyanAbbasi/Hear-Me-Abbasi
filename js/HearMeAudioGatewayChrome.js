@@ -613,6 +613,10 @@ function chooseFiles(){
 
 loadTitle();
 
+chrome.runtime.getPlatformInfo(function(platformInfo){
+	console.log(platformInfo);
+});
+
 $('#disconnect-button').css('opacity', .45).hover(function(){
 		$('#disconnect-button').css('opacity', .75);
 	}, function(){
