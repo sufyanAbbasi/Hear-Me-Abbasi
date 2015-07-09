@@ -230,6 +230,7 @@ function connectWorkhorse() {
 		console.log("*********************************")
 		searchTimer = setTimeout(function() {
 			$('#title #looking').text('This may take a while. Please check that HearMe is plugged in and not connected to any other applications.');
+			checkWindowOS();
 		}, 30000);
 		currentPortIndex = 0; 
 		findHearMe(); 
@@ -612,8 +613,6 @@ function chooseFiles(){
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Initialize Page Processes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 loadTitle();
-
-checkWindowOS();
 
 function checkWindowOS(){
 	chrome.runtime.getPlatformInfo(function(platformInfo){
