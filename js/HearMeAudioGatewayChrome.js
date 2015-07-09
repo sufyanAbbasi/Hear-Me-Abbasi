@@ -613,9 +613,20 @@ function chooseFiles(){
 
 loadTitle();
 
-chrome.runtime.getPlatformInfo(function(platformInfo){
-	console.log(platformInfo);
-});
+checkWindowOS();
+
+function checkWindowOS(){
+	chrome.runtime.getPlatformInfo(function(platformInfo){
+		if (platformInfo.os == "win"){
+			$('#main-content').append('<a download="driver/HearMe_Driver.inf.zip" href="driver/HearMe_Driver.inf.zip" style="position: absolute; bottom: 10px; left: 30px;" id="driver">If you are using a Window OS, click here to download the HearMe driver </a>')
+			$('#main-content #driver').on('click', function(){
+				$(this).css('color', 'purple'); 
+			});
+		}
+	});
+}
+
+
 
 $('#disconnect-button').css('opacity', .45).hover(function(){
 		$('#disconnect-button').css('opacity', .75);
