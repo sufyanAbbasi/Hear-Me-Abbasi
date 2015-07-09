@@ -441,8 +441,8 @@ function processStories(){
 
 		storyName = StoriesList[i].name.split('.wav')[0]; 
 
-		if (storyName.length >= 20){
-			storyName = storyName.substring(0, 18);
+		if (storyName.length >= 18){
+			storyName = storyName.substring(0, 16);
 			li.eq(i).attr('title', StoriesList[i].name).append(storyName + "...wav").prepend('<div class="x-button"><p>&#10006</p></div><div class="spacer"><div>'); 
 		}else{
 			li.eq(i).append(StoriesList[i].name).prepend('<div class="x-button"><p>&#10006</p></div><div class="spacer"><div>');
