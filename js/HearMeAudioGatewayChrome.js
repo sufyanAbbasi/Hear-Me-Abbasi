@@ -230,7 +230,7 @@ function connectWorkhorse() {
 		console.log("*********************************")
 		searchTimer = setTimeout(function() {
 			$('#title #looking').text('This may take a while. Please check that HearMe is plugged in and not connected to any other applications.');
-			checkWindowOS();
+			// checkWindowOS();
 		}, 30000);
 		currentPortIndex = 0; 
 		findHearMe(); 
@@ -614,14 +614,16 @@ function chooseFiles(){
 
 loadTitle();
 
+checkWindowOS();
+
 function checkWindowOS(){
 	chrome.runtime.getPlatformInfo(function(platformInfo){
 		if (platformInfo.os == "win"){
 			$('#main-content').append('<a download="driver/HearMe_Driver.inf.zip" href="driver/HearMe_Driver.inf.zip" style="position: absolute; bottom: 10px; left: 30px;" id="driver">If you are using a Window OS, click here to download the HearMe driver.</a>')
 			$('#main-content #driver').on('click', function(){
-				$(this).css({'color': 'purple',
-							 'left': '160px'
-							}).text("Check your Downloads folder.")
+				$(this).text("Check your Downloads folder.").css({'color': 'purple',
+							 									  'left': '160px'
+																})
 			});
 		}
 	});
