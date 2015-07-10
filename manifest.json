@@ -2,7 +2,7 @@
   "name": "HearMe App",
   "short_name": "HearMe App",
   "description": "Chrome App to install new .wav files to Hear Me hardware",
-  "version": "0.9",
+  "version": "1.0",
   "manifest_version": 2,
   "author": "Sufyan Abbasi, CREATE Lab",
   "minimum_chrome_version": "23",
